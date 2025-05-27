@@ -1,0 +1,67 @@
+start_stop_servers:
+  - us-east-1:
+      - <INSTANCE_ID_1>
+      - <INSTANCE_ID_2>
+      - <INSTANCE_ID_3>
+  - ap-southeast-1:
+      - <INSTANCE_ID_4>
+      - <INSTANCE_ID_5>
+
+db_config:
+  user: <DB_USER>
+  password: <DB_PASSWORD>
+  host: <DB_HOST>
+  database: <DB_NAME>
+  port: <DB_PORT>
+
+available_aws_regions:
+  - us-east-1
+  - ap-southeast-1
+  - eu-west-1
+
+all_regions:
+  - us-east-1
+  - ap-southeast-1
+  - eu-west-1
+  - ldc
+  - tcn
+  - kdc
+  - slt
+  - dialog
+  - rapid
+  - multinet
+  - awalnet
+  - itc
+  - turkey
+  - iraq
+  - kuwait-ft
+  - kuwait-un
+  - egid
+  - link
+
+platforms:
+  - Java
+  - C++
+
+lambda_arn_mapping:
+  us-east-1: <ARN_LAMBDA_US_EAST_1>
+  ap-southeast-1: <ARN_LAMBDA_AP_SOUTHEAST_1>
+  eu-west-1: <ARN_LAMBDA_EU_WEST_1>
+
+users:
+  - username: <USERNAME_1>
+    password: <PASSWORD_1>
+    email: <EMAIL_1>
+    role: admin
+  - username: <USERNAME_2>
+    password: <PASSWORD_2>
+    email: <EMAIL_2>
+    role: user
+
+hosted_zones:
+  - name: example.com
+    id: Z1234567890
+    region: us-east-1
+  - name: example.org
+    id: Z0987654321
+    region: ap-southeast-1

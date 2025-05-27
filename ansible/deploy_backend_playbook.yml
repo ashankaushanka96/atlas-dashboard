@@ -1,0 +1,9 @@
+- name: "feedops-dashboard-backend-playbook"
+  hosts: webservers
+  remote_user: devopsservice
+  connection: ssh
+  become: true
+  become_user: gtnuser
+
+  roles:
+    - deploy_backend

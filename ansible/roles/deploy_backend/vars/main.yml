@@ -1,0 +1,4 @@
+---
+component_path: /apps/feedops-dashboard-backend
+_date: "{{ansible_date_time.iso8601}}"
+venv_path: "{{ component_path }}/.venv"

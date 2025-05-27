@@ -1,0 +1,15 @@
+- name: Copy artifact to server
+  copy:
+    src: "../artifacts.tar.gz"
+    dest: "{{ component_path }}/artifacts.tar.gz"
+
+- name: Extract artifact.tar.gz
+  ansible.builtin.unarchive:
+    src: "{{ component_path }}/artifacts.tar.gz"
+    dest: "{{ component_path }}/"
+    remote_src: yes
+
+- name: Copy all files and directories from artifact to component_path
+  shell: cp -rf {{ component_path }}/artifacts/. {{ component_path }}/
+  args:
+    executable: /bin/bash

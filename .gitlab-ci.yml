@@ -1,0 +1,81 @@
+variables:
+  VERSION: 1.0.${CI_PIPELINE_IID}
+  PRODUCT: mbe
+  SERVICE: feedops-dashboard
+
+stages:
+  - build
+  - deploy
+
+workflow:
+  rules:
+    - if: "$CI_COMMIT_TAG"
+    - when: never
+
+.git_access:
+  before_script:
+    - git config --global credential.helper store
+    - echo "https://gitlab-ci-token:${ANSIBLE_ROLES_REGISTRY_KEY}@gitlab.com" >>  ~/.git-credentials
+    - chmod 600 ~/.git-credentials
+
+build_frontend:
+  image: node:latest
+  stage: build
+  tags:
+    - mbe
+    - uat
+  script:
+    - cd frontend
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+
+build_backend:
+  stage: build
+  tags:
+    - mbe
+    - uat
+  image: alpine:latest
+  script:
+    - mkdir artifacts
+    - cp -rf backend/* artifacts/
+    - tar -czf artifacts.tar.gz artifacts/
+  artifacts:
+    paths:
+      - artifacts.tar.gz
+
+deploy_frontend:
+  image: $DOCKER_REGISTRY/ansible:latest
+  stage: deploy
+  tags:
+    - mbe
+    - prod
+  extends:
+    - .git_access
+  script:
+    - cd $ANSIBLE_DIR
+    - ansible-playbook ${CI_PROJECT_DIR}/ansible/deploy_frontend_playbook.yml --extra-vars "ansible_private_key_file=$ANSIBLE_KEY_FILE ansible_ssh_common_args='-o StrictHostKeyChecking=no'" -i ${CI_PROJECT_DIR}/ansible/inventory.ini
+  needs:
+    - build_frontend
+  dependencies:
+    - build_frontend
+  when: manual
+
+deploy_backend:
+  image: $DOCKER_REGISTRY/ansible:latest
+  stage: deploy
+  tags:
+    - mbe
+    - prod
+  extends:
+    - .git_access
+  script:
+    - cd $ANSIBLE_DIR
+    - ansible-playbook ${CI_PROJECT_DIR}/ansible/deploy_backend_playbook.yml --extra-vars "ansible_private_key_file=$ANSIBLE_KEY_FILE ansible_ssh_common_args='-o StrictHostKeyChecking=no'" -i ${CI_PROJECT_DIR}/ansible/inventory.ini
+  needs:
+    - build_backend
+  dependencies:
+    - build_backend
+  when: manual

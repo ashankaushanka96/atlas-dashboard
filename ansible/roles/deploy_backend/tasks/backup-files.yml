@@ -1,0 +1,27 @@
+---
+- name: Backup directory create
+  file:
+    path: "{{ component_path }}/deployments/{{ _date }}"
+    state: directory
+    mode: '0755'
+
+- name: Move all files and directories except deployments to deployment directory
+  shell: |
+    shopt -s extglob
+    mv !(deployments) "{{ component_path }}/deployments/{{ _date }}"
+  args:
+    executable: /bin/bash
+    chdir: "{{ component_path }}"
+
+- name: Archive the backup directory
+  archive:
+    path: "{{ component_path }}/deployments/{{ _date }}"
+    dest: "{{ component_path }}/deployments/{{ _date }}.zip"
+    format: zip
+
+- name: Delete the backup folder after archiving
+  file:
+    path: "{{ component_path }}/deployments/{{ _date }}"
+    state: absent
+
+
