@@ -4,7 +4,7 @@ A full-stack SRE/operations dashboard for monitoring and managing multi-region A
 infrastructure from a single pane of glass. Built to replace scattered manual checks
 across the AWS console, CLI, and spreadsheets with one real-time, role-based web app.
 
-**🔗 [Live demo](https://ashankaushanka96.github.io/operations-dashboard/)** — a
+**🔗 [Live demo](https://ashankaushanka96.github.io/atlas-dashboard/)** — a
 static build running entirely on mock data (no backend/AWS account behind it), so
 you can click through every section without any setup.
 
@@ -73,7 +73,7 @@ flowchart TB
     Watcher -.->|alert email| SES
 ```
 
-📎 **[Interactive architecture diagram](https://ashankaushanka96.github.io/operations-dashboard/architecture.html)** ([source](docs/architecture.html)) — hover or tab through any component to trace its connections.
+📎 **[Interactive architecture diagram](https://ashankaushanka96.github.io/atlas-dashboard/architecture.html)** ([source](docs/architecture.html)) — hover or tab through any component to trace its connections.
 
 **Edge & client**
 - **Browser** — the SRE engineer's session. Never talks to Backend or Aggregator
