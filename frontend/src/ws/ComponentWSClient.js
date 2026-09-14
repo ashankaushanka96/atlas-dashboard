@@ -3,16 +3,41 @@
 //
 // Fan-outs parsed JSON messages to all subscribers.
 // Reconnects with capped exponential backoff.
-import { wsBackend } from "../config/config.js";
+import { wsBackend, demoMode } from "../config/config.js";
 import authService from "../services/auth";
+import { buildComponentStatusPayload } from "../mocks/demoFixtures.js";
 
 let ws = null;
 let listeners = new Set();
 let retry = 0;
 let reconnectTimer = null;
 let lastPayload = null;
+let demoInterval = null;
 
 const WS_PATH = "/component/ws-component-details";
+
+// Demo mode: no real backend to connect to, so simulate the same message
+// shape the aggregator would push, including small periodic changes so the
+// "live" status views aren't static screenshots.
+function connectDemo() {
+  lastPayload = buildComponentStatusPayload();
+  notifyAll(lastPayload);
+
+  if (demoInterval) return;
+  demoInterval = setInterval(() => {
+    const payload = buildComponentStatusPayload();
+    const keys = Object.keys(payload.data);
+    if (keys.length) {
+      const flickerKey = keys[Math.floor(Math.random() * keys.length)];
+      const entry = payload.data[flickerKey];
+      const flickering = Math.random() < 0.15;
+      entry.port_status = flickering ? "not_listening" : "listening";
+      entry.state = flickering ? "down" : "up";
+    }
+    lastPayload = payload;
+    notifyAll(payload);
+  }, 20000);
+}
 
 function buildUrl() {
   const token = authService.getAccessToken();
@@ -40,6 +65,11 @@ function notifyAll(msg) {
 }
 
 function connect() {
+  if (demoMode) {
+    connectDemo();
+    return;
+  }
+
   clearTimeout(reconnectTimer);
   const url = buildUrl();
   try {
@@ -97,6 +127,12 @@ export function subscribe(listener) {
 }
 
 export function refreshOnce() {
+  if (demoMode) {
+    lastPayload = buildComponentStatusPayload();
+    notifyAll(lastPayload);
+    return;
+  }
+
   try {
     ws?.close();
   } catch {}

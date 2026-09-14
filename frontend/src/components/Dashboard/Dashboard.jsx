@@ -879,7 +879,7 @@ function Dashboard({ window, onSignOut }) {
     <AppProvider
       navigation={NAVIGATION}
       branding={{
-        logo: <img src="/images/logo.png" alt="Atlas Dashboard logo" />,
+        logo: <img src={`${import.meta.env.BASE_URL}images/logo.png`} alt="Atlas Dashboard logo" />,
         title: "Atlas Dashboard",
         homeUrl: "home",
       }}

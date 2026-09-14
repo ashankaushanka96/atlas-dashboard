@@ -2,6 +2,12 @@
 
 export const API_BASE = "/api/v1";
 
+// Build-time only: true for the static GitHub Pages build, where there is no
+// backend/aggregator/db/redis to talk to. Set via VITE_DEMO_MODE in the
+// GitHub Actions workflow; unset (and therefore false) for local dev and the
+// real docker/Ansible deployments.
+export const demoMode = import.meta.env.VITE_DEMO_MODE === "true";
+
 const cfg = (typeof window !== "undefined" && window.__APP_CONFIG__) || {};
 
 export const getConfigVar = (key, defaultValue) => {

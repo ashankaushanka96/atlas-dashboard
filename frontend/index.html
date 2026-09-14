@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/images/logo.png" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%images/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Atlas Dashboard</title>
   </head>
@@ -11,7 +11,7 @@
     <script type="module">
       (async () => {
         try {
-          const res = await fetch('/config.json', { cache: 'no-cache' });
+          const res = await fetch('%BASE_URL%config.json', { cache: 'no-cache' });
           if (res.ok) {
             window.__APP_CONFIG__ = await res.json();
           } else {

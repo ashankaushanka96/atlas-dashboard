@@ -1,9 +1,14 @@
 import axios from "axios";
 import { PublicClientApplication } from "@azure/msal-browser";
 
-import { apiBackend, entra } from "../config/config.js";
+import { apiBackend, entra, demoMode } from "../config/config.js";
+import demoAdapter from "../mocks/demoAdapter.js";
+import { DEMO_USER } from "../mocks/demoFixtures.js";
 
 const API = axios.create({ baseURL: apiBackend });
+if (demoMode) {
+  API.defaults.adapter = demoAdapter;
+}
 
 let accessToken = null;
 let permissions = {};
@@ -147,7 +152,7 @@ const refreshLocalAccessToken = async () => {
 
   const {
     data: { access_token },
-  } = await axios.post(`${apiBackend}/auth/access/token`, {
+  } = await API.post("/auth/access/token", {
     refresh_token: refreshToken,
   });
   return setAuthenticatedState(access_token);
@@ -218,7 +223,7 @@ const authService = {
 
     if (!entra.enabled) {
       localStorage.removeItem("refreshToken");
-      window.location.replace("/signin");
+      window.location.replace(`${import.meta.env.BASE_URL}signin`);
       return;
     }
 
@@ -226,7 +231,7 @@ const authService = {
     const account = client.getActiveAccount() || client.getAllAccounts()[0] || undefined;
     await client.clearCache(account ? { account } : undefined);
     client.setActiveAccount(null);
-    window.location.replace("/signin");
+    window.location.replace(`${import.meta.env.BASE_URL}signin`);
   },
 
   getPermissions: () => permissions,
@@ -234,6 +239,12 @@ const authService = {
   isAuthenticated: () => Boolean(accessToken),
 
   initialize: async () => {
+    if (demoMode) {
+      accessToken = "demo-mode-token";
+      permissions = DEMO_USER.role.permissions;
+      return true;
+    }
+
     if (!entra.enabled) {
       try {
         await refreshLocalAccessToken();

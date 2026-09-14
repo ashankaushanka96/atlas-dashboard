@@ -26,7 +26,7 @@ const ENABLED_KEY = "notif_enabled_v1";
 const SYS_ALLOWED_KEY = "notif_system_permission";
 const HISTORY_KEY = "notif_history_v1";
 const HISTORY_LIMIT = 50;
-const SOUND_SRC = "/sounds/notify.mp3"; // optional short ding (backup in-page sound)
+const SOUND_SRC = `${import.meta.env.BASE_URL}sounds/notify.mp3`; // optional short ding (backup in-page sound)
 
 // Which alert severities (toast tones) the user wants to be notified about.
 // Selecting all three is equivalent to "All alerts"; the "default" tone
@@ -185,7 +185,7 @@ export function NotificationProvider({ children }) {
       try {
         const n = new Notification(title, {
           body,
-          icon: "/images/logo.png",
+          icon: `${import.meta.env.BASE_URL}images/logo.png`,
           silent: false, // let Windows play its default sound ✅
           tag: key || title,
           renotify: true,

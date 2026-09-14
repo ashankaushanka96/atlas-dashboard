@@ -1,7 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+// GH_PAGES_BASE is only set by the GitHub Pages deploy workflow (a project
+// site is served from https://<user>.github.io/<repo>/, not the domain
+// root). Local dev and the docker/Ansible builds never set it, so `base`
+// stays "/" for them.
 export default defineConfig({
+  base: process.env.GH_PAGES_BASE || "/",
   plugins: [react()],
   server: {
     host: true, // bind 0.0.0.0 (reachable via your machine's LAN IP)

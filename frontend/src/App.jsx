@@ -27,6 +27,34 @@ import { NotificationProvider } from "./components/notifications/NotificationPro
 import SignInPage from "./components/SignInPage/SignInPage";
 import { DataProvider } from "./DataContext";
 import authService from "./services/auth";
+import { demoMode } from "./config/config.js";
+
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+function DemoModeBanner() {
+  if (!demoMode) return null;
+  return (
+    <Box
+      sx={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: (t) => t.zIndex.snackbar,
+        textAlign: "center",
+        py: 0.75,
+        px: 2,
+        fontSize: 13,
+        fontWeight: 600,
+        color: "#0B1020",
+        background: "linear-gradient(90deg, #60A5FA, #34D399)",
+      }}
+    >
+      Live demo — all data shown is simulated, there is no real backend/AWS
+      account behind this page.
+    </Box>
+  );
+}
 
 function ProtectedRoute({ authenticated, children }) {
   const location = useLocation();
@@ -206,7 +234,8 @@ const App = () => {
       {loading ? (
         <SplashScreen text="Checking your session..." />
       ) : (
-        <BrowserRouter>
+        <BrowserRouter basename={routerBasename}>
+          <DemoModeBanner />
           <Routes>
             <Route path="/" element={<Navigate to="/home" replace />} />
             <Route
