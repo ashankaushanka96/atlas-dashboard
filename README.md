@@ -4,6 +4,10 @@ A full-stack SRE/operations dashboard for monitoring and managing multi-region A
 infrastructure from a single pane of glass. Built to replace scattered manual checks
 across the AWS console, CLI, and spreadsheets with one real-time, role-based web app.
 
+**🔗 [Live demo](https://ashankaushanka96.github.io/operations-dashboard/)** — a
+static build running entirely on mock data (no backend/AWS account behind it), so
+you can click through every section without any setup.
+
 ## Overview
 
 Atlas Dashboard gives an SRE/ops team live visibility into EC2 fleets, managed AWS
