@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+aiomysql
+redis>=4.6
+PyYAML
+boto3
+python-dateutil
+loguru
+cryptography

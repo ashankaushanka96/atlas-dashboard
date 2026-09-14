@@ -1,10 +1,22 @@
+include:
+  - project: "<your-org>/lib/ci-templates"
+    ref: common
+    file:
+      - Jobs/ansible-deployment.gitlab-ci.yml
+      - oidc.gitlab-ci.yml
+  - local: "feedops.gitlab-ci.yml"
+
 variables:
+  SERVICE: sre-dashboard
   VERSION: 1.0.${CI_PIPELINE_IID}
   PRODUCT: mbe
-  SERVICE: feedops-dashboard
+  ANSIBLE_HOST: "${HOST_IP},"
+  ECR_REPO: "<YOUR_AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/sre-dashboard"
 
 stages:
   - build
+  - image_publish
+  - config_prepare
   - deploy
 
 workflow:
@@ -12,70 +24,116 @@ workflow:
     - if: "$CI_COMMIT_TAG"
     - when: never
 
-.git_access:
-  before_script:
-    - git config --global credential.helper store
-    - echo "https://gitlab-ci-token:${ANSIBLE_ROLES_REGISTRY_KEY}@gitlab.com" >>  ~/.git-credentials
-    - chmod 600 ~/.git-credentials
-
-build_frontend:
-  image: node:latest
-  stage: build
+.docker-image-publish:
+  extends: .aws_access
   tags:
     - mbe
-    - uat
+    - prod
+  stage: image_publish
+  image: docker:24.0-cli
+  services:
+    - name: docker:24.0-dind
+      alias: docker
+      command: ["--tls=false"]
+      variables:
+        HEALTHCHECK_TCP_PORT: "2375"
+  variables:
+    DOCKER_BUILDKIT: "1"
+    DOCKER_CLI_EXPERIMENTAL: "enabled"
+    DOCKER_HOST: "tcp://docker:2375"
+    DOCKER_TLS_CERTDIR: ""
+    AWS_REGION: "us-east-1"
+    AWS_CLI_IMAGE: "amazon/aws-cli:2.17.50"
+  before_script:
+    - apk add --no-cache curl bash
+    - |
+      for i in $(seq 1 30); do
+        docker info >/dev/null 2>&1 && break
+        echo "Waiting for Docker daemon..."
+        sleep 2
+      done
+    - docker info
+    - docker run --rm --privileged tonistiigi/binfmt --install all
+    - docker context create dind --docker "host=tcp://docker:2375"
+    - docker buildx create dind --use --name multiarch-builder
+    - docker buildx inspect --bootstrap
+    - |
+      export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s" $(
+        docker run --rm \
+          -e AWS_ROLE_ARN="$AWS_ROLE_ARN" \
+          -e GITLAB_OIDC_TOKEN="$GITLAB_OIDC_TOKEN" \
+          -e AWS_REGION="$AWS_REGION" \
+          "$AWS_CLI_IMAGE" \
+          sts assume-role-with-web-identity \
+          --role-arn "$AWS_ROLE_ARN" \
+          --role-session-name "GitLabRunner-${CI_PROJECT_ID}-${CI_PIPELINE_ID}" \
+          --web-identity-token "$GITLAB_OIDC_TOKEN" \
+          --duration-seconds 3600 \
+          --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
+          --output text
+      ))
+  script:
+    - docker run --rm -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e AWS_REGION "$AWS_CLI_IMAGE" sts get-caller-identity
+    - docker run --rm -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_SESSION_TOKEN -e AWS_REGION "$AWS_CLI_IMAGE" ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
+    - docker buildx build --platform linux/amd64,linux/arm64 --provenance=false -t $ECR_REPO:$NAMESPACE-$VERSION -t $ECR_REPO:$NAMESPACE-latest $DOCKER_CONTEXT --push
+
+
+.artifact_configs:
+  variables:
+    APP_CONFIG_PROJECT: https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/<your-org>/sre/application-configs/sre-dashboard-configs/${CI_ENVIRONMENT_NAME}.git
+    BRANCH: "$CI_COMMIT_TAG"
+  stage: config_prepare
+  script:
+    - apk update
+    - apk add git
+    - git clone --single-branch --branch ${BRANCH} ${APP_CONFIG_PROJECT}
+    - mv ${CI_ENVIRONMENT_NAME} configs
+  artifacts:
+    paths: ["configs/"]
+
+frontend_build:
+  stage: build
+  image: node:lts-alpine3.22
+  tags:
+    - mbe
+    - prod
+  variables:
+    npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  cache:
+    key:
+      files:
+        - frontend/package-lock.json
+    paths:
+      - .npm/
   script:
     - cd frontend
-    - npm install
+    - npm ci
     - npm run build
   artifacts:
     paths:
       - frontend/dist/
-
-build_backend:
-  stage: build
-  tags:
-    - mbe
-    - uat
-  image: alpine:latest
-  script:
-    - mkdir artifacts
-    - cp -rf backend/* artifacts/
-    - tar -czf artifacts.tar.gz artifacts/
-  artifacts:
-    paths:
-      - artifacts.tar.gz
-
-deploy_frontend:
-  image: $DOCKER_REGISTRY/ansible:latest
-  stage: deploy
-  tags:
-    - mbe
-    - prod
-  extends:
-    - .git_access
-  script:
-    - cd $ANSIBLE_DIR
-    - ansible-playbook ${CI_PROJECT_DIR}/ansible/deploy_frontend_playbook.yml --extra-vars "ansible_private_key_file=$ANSIBLE_KEY_FILE ansible_ssh_common_args='-o StrictHostKeyChecking=no'" -i ${CI_PROJECT_DIR}/ansible/inventory.ini
-  needs:
-    - build_frontend
-  dependencies:
-    - build_frontend
   when: manual
 
-deploy_backend:
-  image: $DOCKER_REGISTRY/ansible:latest
-  stage: deploy
-  tags:
-    - mbe
-    - prod
-  extends:
-    - .git_access
-  script:
-    - cd $ANSIBLE_DIR
-    - ansible-playbook ${CI_PROJECT_DIR}/ansible/deploy_backend_playbook.yml --extra-vars "ansible_private_key_file=$ANSIBLE_KEY_FILE ansible_ssh_common_args='-o StrictHostKeyChecking=no'" -i ${CI_PROJECT_DIR}/ansible/inventory.ini
+docker_publish_backend:
+  extends: .docker-image-publish
+  variables:
+    DOCKER_CONTEXT: "./backend"
+    NAMESPACE: "backend"
+  when: manual
+
+docker_publish_aggregator:
+  extends: .docker-image-publish
+  variables:
+    DOCKER_CONTEXT: "./aggregator"
+    NAMESPACE: "aggregator"
+  when: manual
+
+docker_publish_frontend:
+  extends: .docker-image-publish
+  variables:
+    DOCKER_CONTEXT: "./frontend"
+    NAMESPACE: "frontend"
   needs:
-    - build_backend
-  dependencies:
-    - build_backend
+    - job: frontend_build
+      artifacts: true
   when: manual

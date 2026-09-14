@@ -1,1 +1,8 @@
 .venv
+.env
+logs/
+.aws-credentials
+nginx/ssl/
+*.key
+*.pem
+*.crt

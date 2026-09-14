@@ -9,8 +9,8 @@ cd "$SCRIPT_DIR"
 find ./logs -type f -mtime +1 -exec rm {} \;
 
 if [ "$DEBUG" = "True" ]; then
-    nohup .venv/bin/python operations_dashboard_backend.py > ./logs/nohup.out 2>&1 &
+    nohup .venv/bin/python feed_dashboard_backend.py > ./logs/nohup.out 2>&1 &
 else
-    nohup .venv/bin/python operations_dashboard_backend.py > /dev/null 2>&1 &
+    nohup .venv/bin/python feed_dashboard_backend.py > /dev/null 2>&1 &
 fi
 

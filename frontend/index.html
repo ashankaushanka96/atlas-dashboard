@@ -2,12 +2,28 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/images/gtn-logo.png" />
+    <link rel="icon" type="image/svg+xml" href="/images/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Feed Dashboard</title>
+    <title>Atlas Dashboard</title>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module">
+      (async () => {
+        try {
+          const res = await fetch('/config.json', { cache: 'no-cache' });
+          if (res.ok) {
+            window.__APP_CONFIG__ = await res.json();
+          } else {
+            window.__APP_CONFIG__ = {};
+            console.warn('config.json not found or failed to load, using empty runtime config. Status:', res.status);
+          }
+        } catch (e) {
+          window.__APP_CONFIG__ = {};
+          console.warn('Runtime config load failed, falling back to build-time env.', e);
+        }
+        await import('/src/main.jsx');
+      })();
+    </script>
   </body>
 </html>

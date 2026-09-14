@@ -1,0 +1,34 @@
+---
+- name: Check if sre-dashboard path exists
+  stat:
+    path: "{{ sre_dashboard_path }}"
+  register: sre_dashboard_dir
+
+- name: Backup directory create
+  file:
+    path: "{{ sre_dashboard_path }}/deployments/{{ _date }}"
+    state: directory
+    mode: '0755'
+  when: sre_dashboard_dir.stat.exists
+
+- name: Move all files and directories except deployments to deployment directory
+  shell: |
+    shopt -s extglob
+    mv !(deployments) "{{ sre_dashboard_path }}/deployments/{{ _date }}"
+  args:
+    executable: /bin/bash
+    chdir: "{{ sre_dashboard_path }}"
+  when: sre_dashboard_dir.stat.exists
+
+- name: Archive the backup directory
+  archive:
+    path: "{{ sre_dashboard_path }}/deployments/{{ _date }}"
+    dest: "{{ sre_dashboard_path }}/deployments/{{ _date }}.zip"
+    format: zip
+  when: sre_dashboard_dir.stat.exists
+
+- name: Delete the backup folder after archiving
+  file:
+    path: "{{ sre_dashboard_path }}/deployments/{{ _date }}"
+    state: absent
+  when: sre_dashboard_dir.stat.exists

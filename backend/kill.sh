@@ -1,6 +1,6 @@
 #!/bin/sh
 
-COMPNAME="operations_dashboard_backend.py"
+COMPNAME="feed_dashboard_backend.py"
 
 PID=`ps -ef | grep -vw grep | grep -w $COMPNAME | awk '{print $2}'`
 

@@ -1,6 +1,5 @@
 import { createContext, useState, useEffect, useContext } from "react";
-import axios from "axios";
-import { backendDomain } from "./Config";
+import { API } from "./services/auth";
 import PropTypes from "prop-types";
 
 const DataContext = createContext();
@@ -15,9 +14,9 @@ export const DataProvider = ({ children }) => {
 
   const fetchAWSRegions = async () => {
     setLoading(true);
-    const url = `${backendDomain}/schedules/aws/fetch-available-regions`;
+    const url = `/schedules/aws/fetch-available-regions`;
     try {
-      const response = await axios.get(url);
+      const response = await API.get(url);
       setAWSRegions(response.data.regions || []);
     } catch (err) {
       setError(err.message);
@@ -28,9 +27,9 @@ export const DataProvider = ({ children }) => {
 
   const fetchAllRegions = async () => {
     setLoading(true);
-    const url = `${backendDomain}/components/fetch-all-regions`;
+    const url = `/components/fetch-all-regions`;
     try {
-      const response = await axios.get(url);
+      const response = await API.get(url);
       setAllRegions(response.data.regions);
     } catch (err) {
       setError(err.message);
@@ -41,9 +40,9 @@ export const DataProvider = ({ children }) => {
 
   const fetchPlatforms = async () => {
     setLoading(true);
-    const url = `${backendDomain}/components/fetch-platforms`;
+    const url = `/components/fetch-platforms`;
     try {
-      const response = await axios.get(url);
+      const response = await API.get(url);
       setPlatforms(response.data.platforms);
     } catch (err) {
       setError(err.message);
@@ -52,9 +51,9 @@ export const DataProvider = ({ children }) => {
 
   const fetchAWSIPs = async () => {
     setLoading(true);
-    const url = `${backendDomain}/schedules/aws/fetch-ips`;
+    const url = `/schedules/aws/fetch-ips`;
     try {
-      const response = await axios.get(url);
+      const response = await API.get(url);
       setAWSIPs(response.data.ips);
     } catch (err) {
       setError(err.message);

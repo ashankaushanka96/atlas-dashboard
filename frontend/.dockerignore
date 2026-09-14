@@ -1,0 +1,8 @@
+node_modules
+.env
+.env.*
+.gitignore
+Dockerfile.dev
+README.md
+ENVIRONMENT_VARIABLES.md
+eslint.config.js

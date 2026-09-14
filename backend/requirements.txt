@@ -1,5 +1,6 @@
 fastapi
-uvicorn
+uvicorn[standard]
+gunicorn
 boto3
 pydantic
 pyyaml
@@ -7,3 +8,11 @@ mysql-connector-python
 croniter
 loguru
 pyfiglet
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
+python-jose[cryptography]
+python-multipart
+cachetools
+redis>=4.6
+cryptography
+requests

@@ -1,0 +1,2 @@
+---
+sre_dashboard_path: "{{ app_dir }}/sre-dashboard"

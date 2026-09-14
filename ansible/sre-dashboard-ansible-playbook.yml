@@ -1,0 +1,18 @@
+- name: "sre-dashboard-ansible-playbook"
+  hosts: "{{ ansible_host }}"
+  remote_user: devopsservice
+  connection: ssh
+  become: true
+  become_user: "{{ app_user }}"
+  vars:
+    ansible_host: "{{ lookup('env', 'HOST_IP') }}"
+    app_user: "{{ lookup('env', 'APP_USER') or 'appuser' }}"
+    _date: "{{ansible_date_time.iso8601}}"
+    app_dir: "{{ lookup('env', 'APP_DIR') or '/apps' }}"
+    project_dir: "{{ lookup('env','CI_PROJECT_DIR') }}"
+
+  roles:
+    - deploy
+      
+      
+      

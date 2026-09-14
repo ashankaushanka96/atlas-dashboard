@@ -1,5 +1,0 @@
----
-
-component_path: /apps/feedops-dashboard-frontend
-project_build_dir: "../frontend/dist"    # build output from Vite
-# server_name: "yourdomain.com"

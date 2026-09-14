@@ -1,0 +1,22 @@
+stages:
+  - pre_deploy
+  - deploy
+
+feedops_artifact_configs:
+  environment: feed-prod
+  extends:
+    - .artifact_configs
+
+feedops_deploy:
+  stage: deploy
+  environment: feed-prod
+  tags:
+    - mbe
+    - prod
+  extends:
+    - .deploy
+  needs:
+    - feedops_artifact_configs
+  dependencies:
+    - feedops_artifact_configs
+  when: manual

@@ -1,5 +1,0 @@
-- import_tasks: backup-files.yml
-- import_tasks: copy-files.yml
-- import_tasks: setup-venv.yml
-- import_tasks: set-permissions.yml
-- import_tasks: restart-service.yml

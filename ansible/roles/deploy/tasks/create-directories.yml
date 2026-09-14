@@ -1,0 +1,13 @@
+- name: Create sre-dashboard directories
+  file:
+    path: "{{ sre_dashboard_path }}/{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - backend/config
+    - backend/logs
+    - aggregator/config
+    - aggregator/logs
+    - frontend/config
+    - mysql
+    - nginx/ssl

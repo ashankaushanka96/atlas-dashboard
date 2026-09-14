@@ -1,0 +1,6 @@
+---
+- name: Restart service
+  command: "./refresh.sh"
+  args:
+    chdir: "{{ sre_dashboard_path }}"
+

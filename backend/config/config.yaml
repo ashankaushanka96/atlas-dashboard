@@ -1,18 +1,32 @@
 start_stop_servers:
   - us-east-1:
-      - <INSTANCE_ID_1>
-      - <INSTANCE_ID_2>
-      - <INSTANCE_ID_3>
+      - "i-xxxxxxxxxxxxxxxxx"
   - ap-southeast-1:
-      - <INSTANCE_ID_4>
-      - <INSTANCE_ID_5>
+      - "i-xxxxxxxxxxxxxxxxx"
 
 db_config:
-  user: <DB_USER>
-  password: <DB_PASSWORD>
-  host: <DB_HOST>
-  database: <DB_NAME>
-  port: <DB_PORT>
+  host: "db"
+  database: "COMPONENT_DB"
+  port: 3306
+
+redis_config:
+  host: "redis"
+  port: 6379
+  db: 0
+
+aws_secrets_manager:
+  enabled: true
+  region_name: "eu-west-1"
+  secret_name: "sre-dashboard/backend/config"
+
+component_tree:
+  ttl_seconds: 60
+  include_unknown: true
+  ephemeral_port_min: 32000
+
+watcher_api:
+  port: 25628
+  timeout_seconds: 65
 
 available_aws_regions:
   - us-east-1
@@ -44,24 +58,24 @@ platforms:
   - C++
 
 lambda_arn_mapping:
-  us-east-1: <ARN_LAMBDA_US_EAST_1>
-  ap-southeast-1: <ARN_LAMBDA_AP_SOUTHEAST_1>
-  eu-west-1: <ARN_LAMBDA_EU_WEST_1>
+  us-east-1: "arn:aws:lambda:us-east-1:<YOUR_AWS_ACCOUNT_ID>:function:lambda-event-creator"
+  ap-southeast-1: "arn:aws:lambda:ap-southeast-1:<YOUR_AWS_ACCOUNT_ID>:function:lambda-event-creator"
 
-users:
-  - username: <USERNAME_1>
-    password: <PASSWORD_1>
-    email: <EMAIL_1>
-    role: admin
-  - username: <USERNAME_2>
-    password: <PASSWORD_2>
-    email: <EMAIL_2>
-    role: user
+entra:
+  enabled: true
+  tenant_id: "00000000-0000-0000-0000-000000000000"
+  client_id: "00000000-0000-0000-0000-000000000000"
+  authority: "https://login.microsoftonline.com/00000000-0000-0000-0000-000000000000"
+  api_audience: "api://00000000-0000-0000-0000-000000000000"
+  api_scope_name: "access_as_user"
+  auto_create_users: true
+  default_role: "viewer"
+
+datadog:
+  site: "datadoghq.com"
 
 hosted_zones:
-  - name: example.com
-    id: Z1234567890
-    region: us-east-1
-  - name: example.org
-    id: Z0987654321
-    region: ap-southeast-1
+  alertservice.example.com.: alertservice.example-internal.com
+  calcserver-ap.example.com.: calcserver-ap.example-internal.com
+  calcserver-us.example.com.: calcserver-us.example-internal.com
+  file-service.example.com.: file-service.example-internal.com

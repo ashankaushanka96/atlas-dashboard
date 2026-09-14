@@ -1,4 +1,0 @@
-- name: Copy build files to target server
-  copy:
-    src: "{{ project_build_dir }}/"
-    dest: "{{ component_path }}/"

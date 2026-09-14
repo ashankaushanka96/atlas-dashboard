@@ -2,8 +2,13 @@
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
-from models.response_models import ErrorResponse
 from loguru import logger
+from fastapi import Request, HTTPException, status
+from pydantic import BaseModel
+
+class ErrorResponse(BaseModel):
+    error_code: int
+    error_message: str
 
 class ErrorHandler:
     @classmethod
@@ -59,6 +64,29 @@ class ErrorHandler:
                 status_code=500,
                 content=ErrorResponse(
                     error_code=500, error_message="Unexpected response format"
+                ).model_dump(),
+                headers={"Access-Control-Allow-Origin": "*"},
+            )
+        
+        @app.exception_handler(HTTPException)
+        async def http_exception_handler(request: Request, exc: HTTPException):
+            logger.warning(f"HTTPException {exc.status_code}: {exc.detail} | Path: {request.url}")
+            if exc.status_code == status.HTTP_401_UNAUTHORIZED:
+                # Customize your 401 payload
+                return JSONResponse(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    content=ErrorResponse(
+                        error_code=401,
+                        error_message="Unauthorized: authentication credentials were missing or invalid"
+                    ).model_dump(),
+                    headers={"Access-Control-Allow-Origin": "*"},
+                )
+            # fallback for other HTTPErrors
+            return JSONResponse(
+                status_code=exc.status_code,
+                content=ErrorResponse(
+                    error_code=exc.status_code,
+                    error_message=str(exc.detail)
                 ).model_dump(),
                 headers={"Access-Control-Allow-Origin": "*"},
             )

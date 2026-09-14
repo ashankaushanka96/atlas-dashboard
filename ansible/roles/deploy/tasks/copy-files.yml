@@ -1,0 +1,17 @@
+- name: Copy configuration and setup files to target server
+  copy:
+    src: "{{ project_dir }}/{{ item.src }}"
+    dest: "{{ sre_dashboard_path }}/{{ item.dest }}"
+  loop:
+    - { src: "configs/backend/config.yaml", dest: "backend/config/config.yaml" }
+    - { src: "configs/aggregator/config.yaml", dest: "aggregator/config/config.yaml" }
+    - { src: "configs/frontend/config.json", dest: "frontend/config/config.json" }
+    - { src: "mysql/init.sql", dest: "mysql/init.sql" }
+    - { src: "nginx/default.conf", dest: "nginx/default.conf" }
+    - { src: "nginx/ssl/sre-dashboard.crt", dest: "nginx/ssl/sre-dashboard.crt" }
+    - { src: "nginx/ssl/sre-dashboard.key", dest: "nginx/ssl/sre-dashboard.key" }
+    - { src: "docker-compose.yml", dest: "docker-compose.yml" }
+    - { src: "run.sh", dest: "run.sh" }
+    - { src: "restart.sh", dest: "restart.sh" }
+    - { src: "refresh.sh", dest: "refresh.sh" }
+    - { src: "kill.sh", dest: "kill.sh" }
