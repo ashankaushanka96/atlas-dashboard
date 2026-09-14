@@ -1,0 +1,721 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<meta charset="UTF-8">
+<title>SRE Dashboard Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F4F6F9;
+    --surface: #FFFFFF;
+    --surface-2: #EAEFF5;
+    --border: #D3DBE5;
+    --ink: #151C26;
+    --ink-muted: #57677B;
+    --accent: #1E7F8C;
+    --accent-ink: #0F5560;
+    --accent-soft: #DCEFF1;
+    --good: #2F9E58;
+    --warn: #C98A1E;
+    --bad: #D64545;
+    --line: #8493A6;
+    --line-soft: #B7C1CE;
+    --radius: 10px;
+    --shadow: 0 1px 2px rgba(21,28,38,0.05), 0 6px 20px -8px rgba(21,28,38,0.12);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0D1318;
+      --surface: #141C24;
+      --surface-2: #1B2530;
+      --border: #2B3946;
+      --ink: #E7EDF3;
+      --ink-muted: #93A2B4;
+      --accent: #4FD0DE;
+      --accent-ink: #9FEAF1;
+      --accent-soft: #123138;
+      --good: #3FBE72;
+      --warn: #E3A83B;
+      --bad: #F26B6B;
+      --line: #5B6C80;
+      --line-soft: #3B4A59;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 28px -10px rgba(0,0,0,0.5);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0D1318;
+    --surface: #141C24;
+    --surface-2: #1B2530;
+    --border: #2B3946;
+    --ink: #E7EDF3;
+    --ink-muted: #93A2B4;
+    --accent: #4FD0DE;
+    --accent-ink: #9FEAF1;
+    --accent-soft: #123138;
+    --good: #3FBE72;
+    --warn: #E3A83B;
+    --bad: #F26B6B;
+    --line: #5B6C80;
+    --line-soft: #3B4A59;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 28px -10px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+
+  .mono { font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace; }
+
+  header.hero {
+    margin-bottom: 40px;
+  }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+  }
+
+  h1 {
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    margin: 10px 0 14px;
+    text-wrap: balance;
+    font-weight: 700;
+  }
+
+  .lede {
+    font-size: 16.5px;
+    line-height: 1.6;
+    color: var(--ink-muted);
+    max-width: 74ch;
+    margin: 0 0 6px;
+  }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  .repo-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  .repo-tag {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--ink-muted);
+  }
+
+  section.block { margin-top: 52px; }
+
+  h2 {
+    font-size: 13px;
+    font-family: "IBM Plex Mono", monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    font-weight: 600;
+    margin: 0 0 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ---------- Diagram ---------- */
+
+  .diagram-shell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 8px;
+  }
+
+  .diagram-scroll {
+    overflow-x: auto;
+    border-radius: 12px;
+  }
+
+  .diagram-scroll svg {
+    display: block;
+    min-width: 980px;
+    width: 100%;
+    height: auto;
+  }
+
+  .legend-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 18px 6px;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    font-size: 12.5px;
+    color: var(--ink-muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-swatch { width: 22px; height: 0; border-top-width: 2.5px; border-top-style: solid; flex-shrink: 0; }
+  .hover-hint {
+    font-size: 12px;
+    color: var(--accent-ink);
+    font-family: "IBM Plex Mono", monospace;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .hover-hint svg { width: 13px; height: 13px; }
+
+  /* interactive states inside the diagram */
+  .diagram-scroll svg .node { cursor: pointer; }
+  .diagram-scroll svg .node,
+  .diagram-scroll svg .edge,
+  .diagram-scroll svg .edge-label {
+    transition: opacity 160ms ease;
+  }
+  .diagram-scroll svg .edge { transition: opacity 160ms ease, stroke-width 160ms ease; }
+  .diagram-scroll svg .node.dim,
+  .diagram-scroll svg .edge.dim,
+  .diagram-scroll svg .edge-label.dim {
+    opacity: 0.2;
+  }
+  .diagram-scroll svg .edge.active { stroke-width: 3.2; opacity: 1; }
+  .diagram-scroll svg .edge-label.active { opacity: 1; }
+  .diagram-scroll svg .node .box { transition: stroke 160ms ease, stroke-width 160ms ease; }
+  .diagram-scroll svg .node.active .box { stroke: var(--accent); stroke-width: 2.25; }
+  .diagram-scroll svg .node:focus { outline: none; }
+  .diagram-scroll svg .node:focus-visible .box { stroke: var(--accent); stroke-width: 2.25; }
+  .diagram-scroll svg .node:focus-visible { opacity: 1; }
+
+  /* ---------- Reference cards ---------- */
+
+  .layer-group { margin-bottom: 34px; }
+  .layer-title {
+    font-size: 12px;
+    font-family: "IBM Plex Mono", monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    font-weight: 600;
+    margin: 0 0 12px;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .card-name {
+    font-size: 15.5px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+
+  .card-tag {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    color: var(--ink-muted);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 2px 7px;
+    border-radius: 5px;
+    white-space: nowrap;
+  }
+
+  .card p {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink-muted);
+    margin: 0 0 10px;
+  }
+
+  .card ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--ink);
+  }
+  .card li { margin-bottom: 3px; }
+  .card li::marker { color: var(--line); }
+
+  .talks-to {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--border);
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+  .talks-to b { color: var(--ink); font-weight: 600; font-family: "IBM Plex Mono", monospace; font-size: 11.5px; }
+
+  footer.note {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--ink-muted);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 640px) {
+    .page { padding: 36px 16px 72px; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="hero">
+    <div class="eyebrow">System Architecture</div>
+    <h1>SRE Dashboard</h1>
+    <p class="lede">
+      A monitoring platform for a fleet of servers/services: a small Python agent (<strong>All-in-One Watcher</strong>)
+      runs on every monitored host, restarts local processes that die, and <strong>pushes</strong> status into the
+      <strong>Aggregator</strong>. The React frontend <strong>pulls</strong> everything else from the <strong>Backend</strong>,
+      which also polls live AWS resource data and Datadog, and acts as the remote control plane for the whole watcher fleet.
+    </p>
+    <div class="repo-tags">
+      <span class="repo-tag">sre-dashboard/frontend</span>
+      <span class="repo-tag">sre-dashboard/backend</span>
+      <span class="repo-tag">sre-dashboard/aggregator</span>
+      <span class="repo-tag">sre-dashboard/nginx</span>
+      <span class="repo-tag">sre-dashboard/mysql</span>
+      <span class="repo-tag">all_in_one_watcher</span>
+    </div>
+  </header>
+
+  <section class="block">
+    <h2>Component map</h2>
+    <div class="diagram-shell">
+      <div class="legend-row">
+        <div class="legend">
+          <div class="legend-item"><span class="legend-swatch" style="border-color:var(--line)"></span>internal request / data path</div>
+          <div class="legend-item"><span class="legend-swatch" style="border-color:var(--accent); border-top-width:3.5px;"></span>live monitoring feed (push)</div>
+          <div class="legend-item"><span class="legend-swatch" style="border-color:var(--line); border-top-style:dashed;"></span>remote control action</div>
+          <div class="legend-item"><span class="legend-swatch" style="border-color:var(--line-soft); border-top-style:dotted;"></span>third-party integration</div>
+        </div>
+        <div class="hover-hint">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 8.5V3.6a1 1 0 0 1 2 0V8m0-.3V2.6a1 1 0 0 1 2 0V8m0-.4V4a1 1 0 0 1 2 0v6.5c0 2.5-1.8 4.5-4.5 4.5-1.6 0-2.6-.6-3.4-1.7L2 9.8c-.4-.6.1-1.4.8-1.3.4 0 .7.3.9.6L6 11"></path></svg>
+          hover or tab through a component to trace its connections
+        </div>
+      </div>
+      <div class="diagram-scroll">
+        <svg id="arch-svg" viewBox="0 0 1400 900" role="img" aria-label="SRE Dashboard architecture: browser talks to Nginx, which routes to the Frontend, Backend and Aggregator; Backend and Aggregator share MySQL and Redis, and Backend alone polls AWS and Datadog; every monitored host runs an All-in-One Watcher that pushes live status to the Aggregator and exposes a local control API that the Backend drives to restart processes and read logs, while that same local API emails alerts via AWS SES.">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path>
+            </marker>
+          </defs>
+
+          <!-- ===================== connectors ===================== -->
+          <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+
+            <path class="edge" data-from="browser" data-to="nginx" d="M665,76 L665,120" stroke="var(--line)" stroke-width="2" marker-end="url(#arrow)"></path>
+
+            <path class="edge" data-from="nginx" data-to="frontend" d="M595,176 L595,196 L175,196 L175,230" stroke="var(--line)" stroke-width="2" marker-end="url(#arrow)"></path>
+            <path class="edge" data-from="nginx" data-to="backend" d="M665,176 L665,209 L505,209 L505,230" stroke="var(--line)" stroke-width="2" marker-end="url(#arrow)"></path>
+            <path class="edge" data-from="nginx" data-to="aggregator" d="M735,176 L735,219 L825,219 L825,230" stroke="var(--line)" stroke-width="2" marker-end="url(#arrow)"></path>
+
+            <path class="edge" data-from="backend" data-to="mysql" d="M460,316 L460,400" stroke="var(--line)" stroke-width="2" marker-end="url(#arrow)"></path>
+            <path class="edge" data-from="backend" data-to="redis" d="M630,285 L660,285 L660,378 L825,378 L825,400" stroke="var(--line)" stroke-width="2" marker-end="url(#arrow)"></path>
+            <path class="edge" data-from="aggregator" data-to="mysql" d="M700,290 L672,290 L672,388 L505,388 L505,400" stroke="var(--line)" stroke-width="2" marker-end="url(#arrow)"></path>
+            <path class="edge" data-from="aggregator" data-to="redis" d="M825,316 L825,400" stroke="var(--line)" stroke-width="2" marker-end="url(#arrow)"></path>
+
+            <!-- Backend -> AWS / Datadog: routed BELOW the Aggregator box so the line visibly leaves Backend, not Aggregator -->
+            <path class="edge" data-from="backend" data-to="aws" d="M630,268 L655,268 L655,335 L985,335 L985,232 L1030,232" stroke="var(--line-soft)" stroke-width="2" stroke-dasharray="1.5 4.5" marker-end="url(#arrow)"></path>
+            <path class="edge" data-from="backend" data-to="datadog" d="M630,286 L645,286 L645,352 L995,352 L995,316 L1030,316" stroke="var(--line-soft)" stroke-width="2" stroke-dasharray="1.5 4.5" marker-end="url(#arrow)"></path>
+
+            <path class="edge" data-from="backend" data-to="localapi" d="M630,300 L665,300 L665,592 L815,592 L815,610" stroke="var(--ink-muted)" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#arrow)"></path>
+
+            <path class="edge" data-from="watcher" data-to="aggregator" d="M475,610 L475,594 L335,594 L335,350 L720,350 L720,316" stroke="var(--accent)" stroke-width="3" marker-end="url(#arrow)"></path>
+
+            <path class="edge" data-from="watcher" data-to="datadog" d="M560,610 L560,594 L1010,594 L1010,340 L1030,340" stroke="var(--line-soft)" stroke-width="2" stroke-dasharray="1.5 4.5" marker-end="url(#arrow)"></path>
+            <path class="edge" data-from="localapi" data-to="ses" d="M970,662 L1005,662 L1005,644 L1030,644" stroke="var(--line-soft)" stroke-width="2" stroke-dasharray="1.5 4.5" marker-end="url(#arrow)"></path>
+
+            <path class="edge" data-from="watcher" data-to="processes" d="M440,700 L440,730" stroke="var(--line)" stroke-width="2" marker-end="url(#arrow)"></path>
+            <path class="edge" data-from="localapi" data-to="processes" d="M815,700 L815,730" stroke="var(--line)" stroke-width="2" marker-end="url(#arrow)"></path>
+
+            <path class="edge" data-from="watcher" data-to="watcher" d="M370,610 C 340,585 340,565 368,555 C 380,551 392,556 393,568" stroke="var(--line)" stroke-width="2" marker-end="url(#arrow)"></path>
+          </g>
+
+          <!-- ===================== edge labels ===================== -->
+          <g font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink-muted)">
+            <g class="edge-label" data-from="browser" data-to="nginx" transform="translate(665,102)"><rect x="-58" y="-11" width="116" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle">HTTPS + WSS · :443</text></g>
+
+            <g class="edge-label" data-from="nginx" data-to="frontend" transform="translate(175,196)"><rect x="-48" y="-20" width="96" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="-8">/ static SPA</text></g>
+            <g class="edge-label" data-from="nginx" data-to="backend" transform="translate(505,209)"><rect x="-52" y="-20" width="104" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="-8">/api/v1/* → :8080</text></g>
+            <g class="edge-label" data-from="nginx" data-to="aggregator" transform="translate(825,219)"><rect x="-42" y="-20" width="84" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="-8">WS → :8000</text></g>
+
+            <g class="edge-label" data-from="backend" data-to="mysql" transform="translate(460,360)"><rect x="-40" y="-9" width="80" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="3">reads/writes</text></g>
+            <g class="edge-label" data-from="backend" data-to="redis" transform="translate(742,378)"><rect x="-24" y="-9" width="48" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="3">cache</text></g>
+            <g class="edge-label" data-from="aggregator" data-to="mysql" transform="translate(588,388)"><rect x="-46" y="-9" width="92" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="3">component tree</text></g>
+            <g class="edge-label" data-from="aggregator" data-to="redis" transform="translate(846,360)"><rect x="-24" y="-9" width="48" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="3">cache</text></g>
+
+            <g class="edge-label" data-from="backend" data-to="aws" transform="translate(820,321)"><rect x="-38" y="-9" width="76" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="3">boto3 poll</text></g>
+            <g class="edge-label" data-from="backend" data-to="datadog" transform="translate(820,338)"><rect x="-44" y="-9" width="88" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="3">query metrics</text></g>
+
+            <g class="edge-label" data-from="backend" data-to="localapi" transform="translate(665,470)"><rect x="-100" y="-9" width="200" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="3" fill="var(--ink-muted)">control: restart · config · logs</text></g>
+
+            <g class="edge-label" data-from="watcher" data-to="aggregator" transform="translate(815,478)"><rect x="-96" y="-9" width="192" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="3" fill="var(--accent-ink)" font-weight="600">heartbeat push (status)</text></g>
+
+            <g class="edge-label" data-from="watcher" data-to="datadog" transform="translate(1010,467)"><rect x="-108" y="-9" width="216" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="3">CPU · mem · uptime · log size</text></g>
+            <g class="edge-label" data-from="localapi" data-to="ses" transform="translate(1005,635)"><rect x="-40" y="-9" width="80" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="3">alert email</text></g>
+
+            <g class="edge-label" data-from="watcher" data-to="processes" transform="translate(440,716)"><rect x="-58" y="-9" width="116" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="3">run.sh / kill.sh</text></g>
+            <g class="edge-label" data-from="localapi" data-to="processes" transform="translate(815,716)"><rect x="-56" y="-9" width="112" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="3">start/stop/restart</text></g>
+
+            <g class="edge-label" data-from="watcher" data-to="watcher" transform="translate(305,573)"><rect x="-70" y="-9" width="140" height="16" rx="4" fill="var(--surface)"></rect><text text-anchor="middle" y="3">auto-restarts itself</text></g>
+          </g>
+
+          <!-- ===================== boxes ===================== -->
+          <g>
+            <!-- Browser -->
+            <g class="node" data-id="browser" data-label="Browser" transform="translate(555,20)">
+              <rect class="box" width="220" height="56" rx="10" fill="var(--surface-2)" stroke="var(--border)"></rect>
+              <text x="16" y="24" font-size="14" font-weight="600" fill="var(--ink)">Browser</text>
+              <text x="16" y="41" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink-muted)">SRE engineer · client</text>
+            </g>
+
+            <!-- Nginx -->
+            <g class="node" data-id="nginx" data-label="Nginx" transform="translate(555,120)">
+              <rect class="box" width="220" height="56" rx="10" fill="var(--surface-2)" stroke="var(--border)"></rect>
+              <text x="16" y="24" font-size="14" font-weight="600" fill="var(--ink)">Nginx</text>
+              <text x="16" y="41" font-size="11" font-family="IBM Plex Mono, monospace" fill="var(--ink-muted)">TLS edge · :443 / :80</text>
+            </g>
+
+            <!-- Frontend -->
+            <g class="node" data-id="frontend" data-label="Frontend" transform="translate(60,230)">
+              <rect class="box" width="230" height="86" rx="10" fill="var(--surface)" stroke="var(--border)"></rect>
+              <text x="16" y="26" font-size="15" font-weight="600" fill="var(--ink)">Frontend</text>
+              <text x="16" y="44" font-size="11.5" fill="var(--ink-muted)">React SPA — dashboards,</text>
+              <text x="16" y="59" font-size="11.5" fill="var(--ink-muted)">component map, host detail</text>
+              <text x="16" y="76" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--accent-ink)">React + Vite · nginx:3000</text>
+            </g>
+
+            <!-- Backend -->
+            <g class="node" data-id="backend" data-label="Backend" transform="translate(380,230)">
+              <rect class="box" width="250" height="86" rx="10" fill="var(--surface)" stroke="var(--border)"></rect>
+              <text x="16" y="26" font-size="15" font-weight="600" fill="var(--ink)">Backend</text>
+              <text x="16" y="44" font-size="11.5" fill="var(--ink-muted)">Core REST API + AWS/Datadog</text>
+              <text x="16" y="59" font-size="11.5" fill="var(--ink-muted)">read-through + watcher control</text>
+              <text x="16" y="76" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--accent-ink)">FastAPI · :8080</text>
+            </g>
+
+            <!-- Aggregator -->
+            <g class="node" data-id="aggregator" data-label="Aggregator" transform="translate(700,230)">
+              <rect class="box" width="250" height="86" rx="10" fill="var(--surface)" stroke="var(--border)"></rect>
+              <text x="16" y="26" font-size="15" font-weight="600" fill="var(--ink)">Aggregator</text>
+              <text x="16" y="44" font-size="11.5" fill="var(--ink-muted)">Ingests watcher pushes, feeds</text>
+              <text x="16" y="59" font-size="11.5" fill="var(--ink-muted)">live component map over WS</text>
+              <text x="16" y="76" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="var(--accent-ink)">FastAPI · :8000</text>
+            </g>
+
+            <!-- AWS APIs -->
+            <g class="node" data-id="aws" data-label="AWS APIs" transform="translate(1030,200)">
+              <rect class="box" width="260" height="64" rx="10" fill="var(--surface)" stroke="var(--border)"></rect>
+              <text x="14" y="23" font-size="13.5" font-weight="600" fill="var(--ink)">AWS APIs</text>
+              <text x="14" y="40" font-size="10.5" fill="var(--ink-muted)">EC2·ECS·EKS·Lambda·MSK·ELB</text>
+              <text x="14" y="53" font-size="10.5" fill="var(--ink-muted)">ElastiCache · Route53</text>
+            </g>
+
+            <!-- Datadog -->
+            <g class="node" data-id="datadog" data-label="Datadog" transform="translate(1030,284)">
+              <rect class="box" width="260" height="64" rx="10" fill="var(--surface)" stroke="var(--border)"></rect>
+              <text x="14" y="26" font-size="13.5" font-weight="600" fill="var(--ink)">Datadog</text>
+              <text x="14" y="44" font-size="10.5" fill="var(--ink-muted)">Metrics store + dashboard queries</text>
+            </g>
+
+            <!-- MySQL -->
+            <g class="node" data-id="mysql" data-label="MySQL — COMPONENT_DB" transform="translate(380,400)">
+              <rect class="box" width="250" height="72" rx="10" fill="var(--surface)" stroke="var(--border)"></rect>
+              <text x="16" y="25" font-size="14" font-weight="600" fill="var(--ink)">MySQL — COMPONENT_DB</text>
+              <text x="16" y="43" font-size="10.5" fill="var(--ink-muted)">components · schedules · users</text>
+              <text x="16" y="57" font-size="10.5" fill="var(--ink-muted)">watcher-control audit</text>
+            </g>
+
+            <!-- Redis -->
+            <g class="node" data-id="redis" data-label="Redis" transform="translate(700,400)">
+              <rect class="box" width="250" height="72" rx="10" fill="var(--surface)" stroke="var(--border)"></rect>
+              <text x="16" y="25" font-size="14" font-weight="600" fill="var(--ink)">Redis</text>
+              <text x="16" y="43" font-size="10.5" fill="var(--ink-muted)">shared cache — AWS summaries,</text>
+              <text x="16" y="57" font-size="10.5" fill="var(--ink-muted)">schedules, component data</text>
+            </g>
+
+            <!-- AWS SES -->
+            <g class="node" data-id="ses" data-label="AWS SES" transform="translate(1030,610)">
+              <rect class="box" width="260" height="64" rx="10" fill="var(--surface)" stroke="var(--border)"></rect>
+              <text x="14" y="26" font-size="13.5" font-weight="600" fill="var(--ink)">AWS SES</text>
+              <text x="14" y="44" font-size="10.5" fill="var(--ink-muted)">outbound alert email (SMTP)</text>
+            </g>
+
+            <!-- Fleet outer: stacked-host hint (decorative, not interactive) -->
+            <rect x="294" y="574" width="750" height="280" rx="14" fill="none" stroke="var(--line-soft)" stroke-width="1.5"></rect>
+            <rect x="308" y="588" width="750" height="280" rx="14" fill="none" stroke="var(--line-soft)" stroke-width="1.5"></rect>
+            <g transform="translate(280,560)">
+              <rect width="750" height="280" rx="14" fill="var(--surface-2)" stroke="var(--border)" stroke-width="1.5"></rect>
+              <text x="20" y="26" font-size="11.5" font-family="IBM Plex Mono, monospace" letter-spacing="0.04em" fill="var(--ink-muted)">MONITORED HOST — ONE OF MANY, PER REGION</text>
+            </g>
+
+            <!-- Watcher Agent -->
+            <g class="node" data-id="watcher" data-label="All-in-One Watcher" transform="translate(320,610)">
+              <rect class="box" width="310" height="90" rx="10" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"></rect>
+              <text x="16" y="27" font-size="14.5" font-weight="600" fill="var(--ink)">All-in-One Watcher</text>
+              <text x="16" y="45" font-size="11" fill="var(--ink-muted)">Monitors + auto-restarts the</text>
+              <text x="16" y="60" font-size="11" fill="var(--ink-muted)">host's configured processes</text>
+              <text x="16" y="78" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--accent-ink)">python · config.ini per host</text>
+            </g>
+
+            <!-- Local Watcher API -->
+            <g class="node" data-id="localapi" data-label="Local Watcher API" transform="translate(660,610)">
+              <rect class="box" width="310" height="90" rx="10" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5" stroke-dasharray="5 4"></rect>
+              <text x="16" y="27" font-size="14.5" font-weight="600" fill="var(--ink)">Local Watcher API</text>
+              <text x="16" y="45" font-size="11" fill="var(--ink-muted)">Sidecar control endpoint the</text>
+              <text x="16" y="60" font-size="11" fill="var(--ink-muted)">Backend calls remotely</text>
+              <text x="16" y="78" font-size="10" font-family="IBM Plex Mono, monospace" fill="var(--ink-muted)">FastAPI · X-Watcher-Api-Key</text>
+            </g>
+
+            <!-- Local processes strip -->
+            <g class="node" data-id="processes" data-label="Monitored local processes" transform="translate(320,730)">
+              <rect class="box" width="650" height="60" rx="8" fill="none" stroke="var(--line-soft)" stroke-width="1.5" stroke-dasharray="3 4"></rect>
+              <text x="16" y="24" font-size="12" font-weight="600" fill="var(--ink-muted)">Monitored local processes</text>
+              <text x="16" y="41" font-size="10.5" fill="var(--ink-muted)">one entry per [section] in that host's config.ini</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>What each component does</h2>
+
+    <div class="layer-group">
+      <div class="layer-title">Edge &amp; client</div>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-head"><span class="card-name">Browser</span><span class="card-tag">client</span></div>
+          <p>The SRE engineer's session. Signs in, holds the auth token, and reaches every other service through Nginx over HTTPS/WSS — never talks to Backend or Aggregator directly.</p>
+          <div class="talks-to"><b>talks to</b> Nginx</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-name">Nginx</span><span class="card-tag">nginx:alpine</span></div>
+          <p>The single TLS-terminating entry point. Redirects :80 → :443, then routes by path: static app to Frontend, the live component WebSocket to Aggregator, and every other <span class="mono">/api/v1/*</span> call to Backend.</p>
+          <div class="talks-to"><b>talks to</b> Frontend, Backend, Aggregator</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-group">
+      <div class="layer-title">Application services</div>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-head"><span class="card-name">Frontend</span><span class="card-tag">React + Vite</span></div>
+          <p>The dashboard itself, built to static files and served from an nginx:alpine container.</p>
+          <ul>
+            <li>Home, ComponentDB, ComponentMap (live topology), HostDetails</li>
+            <li>AWSResources, EC2Schedules, Route53, ServerHandler, WatcherStatus, Pipelines</li>
+            <li>Pulls REST data from Backend; opens a same-origin WebSocket straight to Aggregator for live status</li>
+          </ul>
+          <div class="talks-to"><b>talks to</b> Backend (REST), Aggregator (WS)</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-name">Backend</span><span class="card-tag">FastAPI · :8080</span></div>
+          <p>The main API and the system's control plane. It is the <em>only</em> service that talks to AWS and Datadog — the Aggregator never does.</p>
+          <ul>
+            <li>Authentication (Entra SSO), component DB/tree, table preferences</li>
+            <li>EC2 schedules and start/stop ("Server Handler"), Route53</li>
+            <li>Live read-through summaries for Lambda, ECS, EKS, MSK, Redis, load balancers, ElastiCache (via boto3)</li>
+            <li>Datadog metrics queries; ~17 background cache-refresh loops against Redis</li>
+            <li><b>Watcher Control:</b> drives each host's Local Watcher API to restart processes, edit <span class="mono">config.ini</span>, and tail/grep/download logs</li>
+          </ul>
+          <div class="talks-to"><b>talks to</b> MySQL, Redis, AWS APIs, Datadog, every host's Local Watcher API</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-name">Aggregator</span><span class="card-tag">FastAPI · :8000</span></div>
+          <p>The ingest side — the other half of the split that makes this a monitoring system rather than just a dashboard. It only ever talks to MySQL, Redis, and the watcher fleet.</p>
+          <ul>
+            <li>Receives a status POST from every host's Watcher agent</li>
+            <li>Maintains the live component tree in MySQL</li>
+            <li>Fans it back out to the browser over the <span class="mono">/component/ws-component-details</span> WebSocket</li>
+          </ul>
+          <div class="talks-to"><b>talks to</b> MySQL, Redis, every host's Watcher agent (inbound)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-group">
+      <div class="layer-title">Data stores</div>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-head"><span class="card-name">MySQL — COMPONENT_DB</span><span class="card-tag">mysql:8.0</span></div>
+          <p>Shared system of record for Backend and Aggregator: components, EC2 schedules, users/roles, watcher-control audit trail, table preferences.</p>
+          <div class="talks-to"><b>read/written by</b> Backend, Aggregator</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-name">Redis</span><span class="card-tag">redis:alpine</span></div>
+          <p>Shared cache in front of AWS API calls, schedules, and component summaries, so the dashboard doesn't re-poll AWS on every page load.</p>
+          <div class="talks-to"><b>read/written by</b> Backend, Aggregator</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-group">
+      <div class="layer-title">Fleet agent — runs on every monitored host</div>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-head"><span class="card-name">All-in-One Watcher</span><span class="card-tag">Python agent</span></div>
+          <p>Installed on each server being monitored, driven by that host's own <span class="mono">config.ini</span>.</p>
+          <ul>
+            <li>Checks each configured process is running; restarts it if it isn't and <span class="mono">needToUp</span> is set</li>
+            <li>Tracks CPU, memory, uptime, log-directory size and port availability</li>
+            <li>Pushes a status snapshot to the Aggregator every cycle</li>
+            <li>Sends metrics to Datadog and, on failure, an email alert via AWS SES</li>
+          </ul>
+          <div class="talks-to"><b>talks to</b> Aggregator (push), Datadog, AWS SES</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-name">Local Watcher API</span><span class="card-tag">FastAPI sidecar</span></div>
+          <p>A small, API-key-authenticated HTTP server the agent exposes on the same host, so Backend's Watcher Control section can act on it remotely.</p>
+          <ul>
+            <li>Start / stop / restart the watcher itself, or a single component via its own <span class="mono">run.sh</span> / <span class="mono">kill.sh</span> / <span class="mono">restart.sh</span></li>
+            <li>Rewrite <span class="mono">config.ini</span> (add/remove components) and roll back to the last backup</li>
+            <li>Tail, page, grep and download a component's log files — including a live <span class="mono">tail -f</span> over WebSocket</li>
+          </ul>
+          <div class="talks-to"><b>called by</b> Backend</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer-group">
+      <div class="layer-title">External integrations</div>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-head"><span class="card-name">AWS APIs</span><span class="card-tag">boto3</span></div>
+          <p>Polled live by Backend only for EC2, ECS, EKS, Lambda, MSK, ElastiCache, load balancer and Route53 detail and summary data, then cached in Redis.</p>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-name">Datadog</span><span class="card-tag">metrics API</span></div>
+          <p>Receives process/resource/log-size metrics pushed by every Watcher agent; Backend separately queries Datadog's metrics API to surface configured queries on the dashboard.</p>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-name">AWS SES</span><span class="card-tag">SMTP</span></div>
+          <p>Outbound relay the Watcher agent uses to email an alert when a monitored process is found down and <span class="mono">needToSendMail</span> is enabled.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="note">
+    Built from <span class="mono">docker-compose.yml</span>, <span class="mono">nginx/default.conf</span>, and the FastAPI app wiring in
+    <span class="mono">backend/backend.py</span> and <span class="mono">aggregator/aggregator.py</span>, plus the watcher's own
+    <span class="mono">app/services/aggregator.py</span> and <span class="mono">app/api/server.py</span>. The Backend↔Frontend↔Nginx
+    trio ships together via <span class="mono">docker-compose</span>; the All-in-One Watcher is deployed independently onto each
+    monitored host and is not part of that compose stack.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var svg = document.getElementById('arch-svg');
+  if (!svg) return;
+  var nodes = Array.prototype.slice.call(svg.querySelectorAll('.node'));
+  var edges = Array.prototype.slice.call(svg.querySelectorAll('.edge'));
+  var edgeLabels = Array.prototype.slice.call(svg.querySelectorAll('.edge-label'));
+
+  function reset() {
+    nodes.forEach(function (n) { n.classList.remove('dim', 'active'); });
+    edges.forEach(function (e) { e.classList.remove('dim', 'active'); });
+    edgeLabels.forEach(function (l) { l.classList.remove('dim', 'active'); });
+  }
+
+  function focusOn(id) {
+    reset();
+    var connected = {};
+    connected[id] = true;
+    edges.forEach(function (e) {
+      var from = e.getAttribute('data-from');
+      var to = e.getAttribute('data-to');
+      var hit = from === id || to === id;
+      e.classList.add(hit ? 'active' : 'dim');
+      if (hit) { connected[from] = true; connected[to] = true; }
+    });
+    edgeLabels.forEach(function (l) {
+      var from = l.getAttribute('data-from');
+      var to = l.getAttribute('data-to');
+      var hit = from === id || to === id;
+      l.classList.add(hit ? 'active' : 'dim');
+    });
+    nodes.forEach(function (n) {
+      var nid = n.getAttribute('data-id');
+      n.classList.add(connected[nid] ? 'active' : 'dim');
+    });
+  }
+
+  nodes.forEach(function (n) {
+    n.setAttribute('tabindex', '0');
+    n.setAttribute('role', 'button');
+    var label = n.getAttribute('data-label') || n.getAttribute('data-id');
+    n.setAttribute('aria-label', label + ' — highlight connections');
+    n.addEventListener('mouseenter', function () { focusOn(n.getAttribute('data-id')); });
+    n.addEventListener('focus', function () { focusOn(n.getAttribute('data-id')); });
+    n.addEventListener('mouseleave', reset);
+    n.addEventListener('blur', reset);
+  });
+
+  svg.addEventListener('mouseleave', reset);
+})();
+</script>
+
+</body></html>

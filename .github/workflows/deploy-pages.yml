@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "frontend/**"
+      - "docs/**"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
@@ -47,6 +48,9 @@ jobs:
       - name: SPA fallback for client-side routing
         working-directory: frontend
         run: cp dist/index.html dist/404.html
+
+      - name: Add architecture page
+        run: cp docs/architecture.html frontend/dist/architecture.html
 
       - uses: actions/configure-pages@v5
 

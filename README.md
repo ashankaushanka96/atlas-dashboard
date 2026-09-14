@@ -73,7 +73,7 @@ flowchart TB
     Watcher -.->|alert email| SES
 ```
 
-📎 **[Interactive architecture diagram](https://claude.ai/code/artifact/48c76b36-4581-402b-beb0-2ae86812ca2a)** — hover or tab through any component to trace its connections.
+📎 **[Interactive architecture diagram](https://ashankaushanka96.github.io/operations-dashboard/architecture.html)** ([source](docs/architecture.html)) — hover or tab through any component to trace its connections.
 
 **Edge & client**
 - **Browser** — the SRE engineer's session. Never talks to Backend or Aggregator
